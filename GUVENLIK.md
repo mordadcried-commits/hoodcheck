@@ -30,6 +30,18 @@ donusur. Artik: SITE_URL verilmisse yalniz o kullanilir; verilmemisse Host'a SAD
 gelistirmede guvenilir, disaridan gelen Host reddedilir (goreli yola dusulur).
 Dogrulama: `Host: evil.com` -> `/og-tr.png`, `SITE_URL=https://x` -> `https://x/og-tr.png`.
 
+## CANLIDA bulunan ve kapatilan aciklar
+
+**3. X-Forwarded-For ile hiz siniri atlatiliyordu.** (08.09.2026, canli adreste olculdu)
+Ters vekiller -- Render dahil -- gelen XFF basliginin SONUNA gercek IP'yi EKLER, basini
+degistirmez. Kod ILK degeri okuyordu, yani istemcinin kendi yazdigini. Her istekte rastgele
+bir IP gonderen biri sinirsiz tarama yapabiliyordu:
+    sahte XFF ile : 14 istek -> 14 gecti, 0 engel
+    XFF olmadan   : 14 istek -> 10 gecti, 4 engel (429)
+Sonuc: Alchemy kotasi tuketilebilir, robinscan/blockscout bizi engelleyebilirdi.
+DUZELTME: artik SON deger okunuyor - onu her zaman guvendigimiz vekil ekler.
+DOGRULAMA: Render davranisi taklit edilerek (sahte deger + sonda gercek IP) 10 gecti, 4 engel.
+
 ## Canliya cikarken UYULMASI GEREKENLER
 
 1. **Bot paneli (3777) ASLA disari acilmaz.** Icinde private key girisi, canli mod anahtari

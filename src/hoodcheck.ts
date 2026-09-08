@@ -59,12 +59,17 @@ let calisan = 0;
 let kuyruk = 0;
 
 function istemciIp(req: http.IncomingMessage): string {
-  // Ters vekil arkasindayken gercek IP X-Forwarded-For'da olur. Sadece ILK deger guvenilir
-  // sayilir ve yalnizca vekil kullandigimizi bildigimizde (TRUST_PROXY) dikkate alinir.
+  // GUVENLIK - 08.09.2026'da canlida olculdu: ters vekiller (Render dahil) gelen
+  // X-Forwarded-For basliginin SONUNA gercek IP'yi EKLER, basini degistirmez. Ilk degeri
+  // okumak, istemcinin yazdigi degeri okumak demektir: her istekte rastgele bir IP
+  // gonderen biri hiz sinirini tamamen atlatiyordu (14 istek, 0 engel).
+  // Dogrusu SON deger: onu her zaman guvendigimiz vekil ekler.
   if (process.env.TRUST_PROXY === '1') {
     const f = req.headers['x-forwarded-for'];
-    const ilk = (Array.isArray(f) ? f[0] : f)?.split(',')[0]?.trim();
-    if (ilk) return ilk;
+    const zincir = (Array.isArray(f) ? f.join(',') : f) ?? '';
+    const parcalar = zincir.split(',').map((x) => x.trim()).filter(Boolean);
+    const son = parcalar[parcalar.length - 1];
+    if (son) return son;
   }
   return req.socket.remoteAddress || 'bilinmiyor';
 }
