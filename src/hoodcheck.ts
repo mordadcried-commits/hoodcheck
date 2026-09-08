@@ -8,6 +8,7 @@
 //   - sadece iki uc sunar: GET /  ve  GET /api/tokencheck
 // Boylece halka acik yuzey ile para tutan yuzey fiziksel olarak ayrilir.
 import http from 'node:http';
+import crypto from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -51,6 +52,17 @@ const KUYRUK_SINIRI = 20;
 // kullanici bos bir baglanti hatasi degil, anlasilir bir mesaj gorsun.
 const TARAMA_ZAMAN_ASIMI = Number(process.env.HOODCHECK_TIMEOUT_MS || 85_000);
 const ONBELLEK_MS = 60_000;
+
+// --- KULLANIM SAYACI ---
+// Amac: "siteyi kullanan var mi" sorusuna bakabilmek. GIZLILIK: IP saklanmaz; surece ozel
+// rastgele bir tuzla ozetlenip yalnizca "bu ziyaretciyi daha once gordum mu" karsilastirmasi
+// icin tutulur. Cerez yok, kalici kayit yok.
+// UYARI: bellekte durur. Render ucretsiz katmaninda servis 15 dk bostan sonra uyur ve sayac
+// sifirlanir; bu yuzden 'baslangic' alani da bildiriliyor - sayilar o andan itibarendir.
+const TUZ = crypto.randomBytes(16).toString('hex');
+const ziyaretciler = new Set<string>();
+const istatistik = { baslangic: Date.now(), sayfa: 0, tarama: 0, denetim: 0, hata: 0 };
+const kimlikOzeti = (ip: string) => crypto.createHash('sha256').update(TUZ + ip).digest('hex').slice(0, 16);
 
 const onbellek = new Map<string, { at: number; rapor: TokenReport }>();
 const denetimOnbellek = new Map<string, { at: number; veri: Denetim }>();
@@ -152,6 +164,10 @@ export async function baslat(): Promise<http.Server> {
         const aciklama = enMi
           ? 'Check you can sell it before you buy it. No other service simulates selling on this chain.'
           : 'Almadan önce satabilir misin diye bak. Bu zincirde satış simülasyonu yapan başka bir servis yok.';
+        istatistik.sayfa++;
+        const zh = kimlikOzeti(istemciIp(req));
+        if (!ziyaretciler.has(zh)) { ziyaretciler.add(zh); log.info(`YENI ZIYARETCI (${ziyaretciler.size}. kisi) - sayfa ${enMi ? '/en' : '/'}`); }
+        if (ziyaretciler.size > 50_000) ziyaretciler.clear();
         const html = fs.readFileSync(SAYFA, 'utf8')
           .split('{{SITE}}').join(host.replace(/\/$/, ''))
           .split('{{DIL}}').join(enMi ? 'en' : 'tr')
@@ -164,6 +180,14 @@ export async function baslat(): Promise<http.Server> {
       // deger sizdirmaz. Dagitimdan sonra "SITE_URL gecti mi" diye tahmin yurutmemek icin.
       if (url.pathname === '/saglik') return gonder(200, {
         ok: true, calisan, kuyruk,
+        kullanim: {
+          acikSure: Math.round((Date.now() - istatistik.baslangic) / 60_000) + ' dk',
+          sayfaGoruntuleme: istatistik.sayfa,
+          tarama: istatistik.tarama,
+          denetim: istatistik.denetim,
+          hata: istatistik.hata,
+          tekilZiyaretci: ziyaretciler.size,
+        },
         ayar: {
           siteUrl: !!process.env.SITE_URL,
           vekilGuveni: process.env.TRUST_PROXY === '1',
@@ -200,6 +224,7 @@ export async function baslat(): Promise<http.Server> {
           while (calisan >= ESZAMANLI) await new Promise((f) => setTimeout(f, 200));
           calisan++;
           try {
+            istatistik.denetim++;
             return gonder(200, await denetimYap(token, k));
           } finally { calisan--; }
         } finally { kuyruk--; }
@@ -227,10 +252,12 @@ export async function baslat(): Promise<http.Server> {
           while (calisan >= ESZAMANLI) await new Promise((f) => setTimeout(f, 250));
           calisan++;
           try {
+            istatistik.tarama++;
             const rapor = await Promise.race([
               tokenReport(chain, token, symbolCount),
               new Promise<never>((_, ret) => setTimeout(() => ret(new Error('tarama zaman asimina ugradi')), TARAMA_ZAMAN_ASIMI)),
             ]);
+            log.info(`TARAMA #${istatistik.tarama}: ${rapor.sembol} -> ${rapor.puan} ${rapor.ozet} (${(rapor.olcumMs / 1000).toFixed(1)} sn)`);
             onbellek.set(anahtar, { at: Date.now(), rapor });
             if (onbellek.size > 500) for (const [k, v] of onbellek) if (Date.now() - v.at > 5 * ONBELLEK_MS) onbellek.delete(k);
             return gonder(200, rapor);
@@ -242,6 +269,7 @@ export async function baslat(): Promise<http.Server> {
     } catch (e) {
       if (e instanceof TokenDegil) return gonder(404, { error: 'Bu adres bu zincirde bir token gibi gorunmuyor. Adresi kontrol et.' });
       // Ic detaylar (RPC adresi, dosya yollari) disariya sizmasin
+      istatistik.hata++;
       log.error('hoodcheck istek hatasi', e);
       return gonder(500, { error: 'tarama sirasinda bir hata olustu' });
     }
