@@ -131,8 +131,6 @@
   .arama button:disabled{opacity:.4;cursor:default;filter:none}
   .arama button:focus-visible{outline:2px solid var(--yesil);outline-offset:3px}
 
-  .ornekler{margin:14px auto 0;font-size:12.5px;color:var(--gri-koyu);text-align:center}
-  .ornekler b{color:var(--gri);cursor:pointer;font-weight:500;border-bottom:1px dotted var(--kenar)}
 
   .durum{text-align:center;padding:34px 0;color:var(--gri);font-size:14px}
   .cubuk{max-width:340px;height:3px;background:var(--kenar);border-radius:99px;margin:16px auto 0;overflow:hidden}
@@ -336,10 +334,6 @@
       </div>
       <div class="terminalNot"><span class="nokta"></span><span id="terminalNot"></span></div>
     </div>
-    <div class="ornekler"><span id="dene"></span>
-      <b data-a="0xcebc0cfbc5dd0893a9e3b9d0f75b211ddf5934a0">CLAN</b> ·
-      <b data-a="0x4a72b9702f991b790788f8afa9e7112541f4e8f8">ROUTE</b> ·
-      <b data-a="0xbc9cc4b93a08b2dfba87067a9c53e713db3314ce">PINK</b></div>
   </div>
 
   <div id="durum" class="durum" style="display:none"></div>
@@ -360,7 +354,6 @@ const M = {
     alt: 'Bu zincirde satış simülasyonu yapan başka servis yok. Adresi yapıştır: token gerçekten satılabiliyor mu, al-sat maliyeti ne, ilk dakikada kaç ayrı cüzdan işlem yapmış — hepsini doğrudan zincirden okuyup söylüyoruz.',
     yer: '➤ 0x… token adresini yapıştır',
     tara: 'Tara',
-    dene: 'Dene:',
     yukleniyor: 'Zincirden okunuyor…',
     asamalar: ['Havuzlar taranıyor…', 'Alım simüle ediliyor…', 'Satış simüle ediliyor…', 'Lansman anı ölçülüyor…', 'Rapor hazırlanıyor…'],
     kopyala: 'Adresi kopyala', kopyalandi: 'Kopyalandı', paylas: 'Raporu paylaş', baglantiKopyalandi: 'Bağlantı kopyalandı',
@@ -425,7 +418,6 @@ const M = {
     alt: 'No other service simulates selling on this chain. Paste an address: can the token actually be sold, what does a round trip cost, how many separate wallets traded it in the first minute — all read straight from the chain.',
     yer: '➤ paste the 0x… token address',
     tara: 'Scan',
-    dene: 'Try:',
     yukleniyor: 'Reading the chain…',
     asamalar: ['Scanning pools…', 'Simulating the buy…', 'Simulating the sell…', 'Measuring the launch…', 'Building the report…'],
     kopyala: 'Copy address', kopyalandi: 'Copied', paylas: 'Share report', baglantiKopyalandi: 'Link copied',
@@ -505,7 +497,6 @@ function dilUygula() {
   $('#etiketAd').textContent = t().etiketAd;
   $('#terminalNot').innerHTML = `<b>${dil === 'tr' ? 'UYARI:' : 'WARNING:'}</b> ${esc(t().terminalNot)}`;
   $('#btn').textContent = t().tara;
-  $('#dene').textContent = t().dene;
   $('#dipnot').innerHTML = t().dipnot;
   $('#altbilgi').innerHTML = t().altbilgi;
   document.querySelectorAll('.dil button').forEach((b) => b.classList.toggle('acik', b.dataset.dil === dil));
@@ -745,9 +736,6 @@ document.querySelectorAll('.dil button').forEach((b) => {
 });
 $('#btn').onclick = () => tara();
 $('#adres').addEventListener('keydown', (e) => { if (e.key === 'Enter') tara(); });
-document.querySelectorAll('.ornekler b').forEach((b) => {
-  b.onclick = () => { $('#adres').value = b.dataset.a; tara(b.dataset.a); };
-});
 dilUygula();
 
 // Baglantiyla gelindiyse (paylasilmis rapor) dogrudan tara
