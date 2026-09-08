@@ -1,0 +1,20 @@
+{
+  "name": "hoodcheck",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Robinhood Chain token risk tarayicisi - halka acik, salt okunur",
+  "scripts": {
+    "start": "tsx src/hoodcheck.ts",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "ethers": "^6.17.0",
+    "zod": "^4.5.4",
+    "dotenv": "^17.4.2",
+    "tsx": "^4.23.13"
+  },
+  "devDependencies": {
+    "typescript": "^7.0.2"
+  }
+}

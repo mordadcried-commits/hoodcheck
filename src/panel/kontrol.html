@@ -1,0 +1,759 @@
+<!-- Token risk kontrolu - Robinhood Chain. Robinhood temasi: siyah zemin, neon yesil. TR/EN. -->
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{{BASLIK}}</title>
+<meta name="description" content="{{ACIKLAMA}}">
+<!-- Paylasim karti: X'te link paylasilinca gorunen onizleme. {{SITE}} sunucuda gercek
+     adresle degistirilir; sosyal platformlar goreli yol kabul etmiyor. -->
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="HoodCheck">
+<meta property="og:title" content="{{BASLIK}}">
+<meta property="og:description" content="{{ACIKLAMA}}">
+<meta property="og:image" content="{{SITE}}/og-{{DIL}}.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:url" content="{{SITE}}{{YOL}}">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="{{BASLIK}}">
+<meta name="twitter:description" content="{{ACIKLAMA}}">
+<meta name="twitter:image" content="{{SITE}}/og-{{DIL}}.png">
+<style>
+  :root{
+    --siyah:#000000; --zemin:#0b0d0c; --kart:#121614; --kenar:#1e2622;
+    --yesil:#00c805; --yesil-los:#0a3d12; --kirmizi:#ff4d4d; --sari:#ffb020;
+    --beyaz:#ffffff; --gri:#8b9490; --gri-koyu:#5a625e;
+    /* Izgara dokusu (Uiverse / Cybercom682). Orijinal rgba(0,115,19,.3) koyu yesili #191a1a
+       zemin uzerinde kullaniyordu; biz siyah zemin + parlak yesil kullandigimiz icin ayni
+       GORUNURLUGU vermek adina alfa dusuruldu. Daha belirgin isteniyorsa .12 -> .20 yap. */
+    --izgara:rgba(0,200,5,.12);
+    --mono:ui-monospace,SFMono-Regular,"SF Mono",Consolas,"Liberation Mono",Menlo,monospace;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--siyah);color:var(--beyaz);
+    background-image:
+      linear-gradient(180deg, transparent 24%, var(--izgara) 25%, var(--izgara) 26%, transparent 27%,
+        transparent 74%, var(--izgara) 75%, var(--izgara) 76%, transparent 77%, transparent),
+      linear-gradient(45deg, transparent 24%, var(--izgara) 25%, var(--izgara) 26%, transparent 27%,
+        transparent 74%, var(--izgara) 75%, var(--izgara) 76%, transparent 77%, transparent);
+    background-size:55px 55px;
+    background-attachment:fixed;
+    font-family:var(--mono);
+    font-variant-numeric:tabular-nums;-webkit-font-smoothing:antialiased}
+  .sar{max-width:940px;margin:0 auto;padding:0 20px}
+
+  header{border-bottom:1px solid var(--kenar);background:var(--zemin);position:sticky;top:0;z-index:10}
+  .ust{display:flex;align-items:center;gap:12px;height:58px}
+  .logo{display:flex;align-items:center;gap:9px;font-weight:800;font-size:17px;letter-spacing:-.02em}
+  /* MASKOT: 87 MB'lik GLB modelden bir kez uretilmis 24 karelik donme seridi (6x4 izgara).
+     Sitede three.js/WebGL YOK - tek PNG + CSS. Iki animasyon birlikte calisir: X ekseni
+     satirdaki 6 kareyi, Y ekseni 4 satiri gezer; X bir tam tur atinca Y bir satir iner. */
+  .maskot{width:30px;height:30px;flex:none;background-image:url(/maskot.png);
+    background-size:180px 120px;                    /* 6 x 30px, 4 x 30px */
+    image-rendering:pixelated;
+    animation:maskotX .72s steps(6) infinite, maskotY 2.88s steps(4) infinite}
+  @keyframes maskotX{from{background-position-x:0}to{background-position-x:-180px}}
+  @keyframes maskotY{from{background-position-y:0}to{background-position-y:-120px}}
+  @media (prefers-reduced-motion: reduce){ .maskot{animation:none} }
+  .tuy{width:22px;height:22px;flex:none}
+  .rozet{font-size:11px;color:var(--gri);border:1px solid var(--kenar);padding:5px 10px;
+    border-radius:99px;white-space:nowrap}
+  .dil{margin-left:auto;display:flex;border:1px solid var(--kenar);border-radius:99px;overflow:hidden}
+  .dil button{background:transparent;border:0;color:var(--gri);font-size:11.5px;font-weight:700;
+    padding:6px 13px;cursor:pointer;letter-spacing:.04em}
+  .dil button.acik{background:var(--yesil);color:#00170a}
+  /* Dar ekranda logo + rozet + dil ayni satira sigmiyordu (265px ekranda sayfa 308px oluyordu
+     ve govde yatay kayiyordu). Rozet bilgilendirici, dil dugmesi islevsel: once rozet gider. */
+  @media (max-width:430px){
+    .rozet{display:none}
+    .ust{height:52px;gap:8px}
+    .logo{font-size:15px}
+    h1{font-size:26px}
+    .arama{flex-direction:column}
+    .arama button{width:100%;font-size:.95rem;letter-spacing:.22rem;padding:.8rem 1rem}
+  }
+
+  .kahraman{padding:46px 0 26px;text-align:center}
+  h1{margin:0 0 10px;font-size:32px;line-height:1.15;letter-spacing:-.03em;font-weight:800}
+  h1 em{font-style:normal;color:var(--yesil)}
+  .alt{margin:0 auto 26px;max-width:600px;color:var(--gri);font-size:13.5px;line-height:1.75}
+
+  /* Terminal giris kutusu - Uiverse.io / M4rio1 (Tailwind'den duz CSS'e cevrildi).
+     Orijinal bir SIFRE girisiydi (ADMIN_ACCESS / ENTER CREDENTIALS / kilit ikonu). Halka acik
+     bir arac sahte kimlik istegi gibi gorunmemeli; gorsel dil korundu, metin durustlestirildi. */
+  .terminal{position:relative;max-width:640px;margin:0 auto;padding:20px 18px 16px;
+    background:rgba(0,0,0,.55);border:2px solid var(--yesil);border-radius:10px;overflow:hidden}
+  .terminal::before{content:"";position:absolute;inset:0 0 auto 0;height:64px;pointer-events:none;
+    background:linear-gradient(to bottom,transparent,rgba(0,200,5,.10),transparent)}
+  /* dort kose parantezi */
+  .kose{position:absolute;background:var(--yesil);pointer-events:none}
+  .kose.uy{top:0;left:0;width:22px;height:3px} .kose.us{top:0;left:0;width:3px;height:22px}
+  .kose.usy{top:0;right:0;width:22px;height:3px} .kose.uss{top:0;right:0;width:3px;height:22px}
+  .kose.ay{bottom:0;left:0;width:22px;height:3px} .kose.asol{bottom:0;left:0;width:3px;height:22px}
+  .kose.asy{bottom:0;right:0;width:22px;height:3px} .kose.asag{bottom:0;right:0;width:3px;height:22px}
+  .etiket{display:flex;align-items:center;gap:7px;margin-bottom:11px;font-size:12px;
+    letter-spacing:.12em;color:var(--yesil)}
+  .etiket .ok{color:#0a8f10}
+  .etiket .ad{font-weight:700;color:#7dff86}
+  .etiket .imlec{opacity:.75;animation:imlec 1s steps(2) infinite}
+  @keyframes imlec{0%,49%{opacity:.85}50%,100%{opacity:0}}
+  .arama{display:flex;gap:10px;margin:0}
+  .girisSar{position:relative;flex:1;min-width:0}
+  .arama input{width:100%;background:transparent;border:2px solid #0a8f10;border-radius:7px;
+    padding:13px 40px 13px 14px;color:#9dffa6;font-size:13.5px;font-family:var(--mono);outline:none}
+  .arama input:focus{border-color:var(--yesil);box-shadow:0 0 0 2px rgba(0,200,5,.35)}
+  .arama input::placeholder{color:rgba(0,200,5,.45)}
+  .girisSar svg{position:absolute;right:12px;top:50%;transform:translateY(-50%);
+    width:18px;height:18px;color:#0a8f10;pointer-events:none}
+  .terminalNot{display:flex;align-items:center;gap:8px;margin-top:13px;font-size:11px;
+    color:rgba(0,200,5,.75);letter-spacing:.03em}
+  .terminalNot .nokta{width:7px;height:7px;border-radius:50%;background:var(--kirmizi);flex:none}
+  .terminalNot b{color:var(--kirmizi);font-weight:700}
+  /* Tara butonu - Uiverse.io / Smit-Prajapati, Robinhood yesiline uyarlandi.
+     Orijinal 1.5rem yazi + 3rem yan bosluk + .5rem harf araligi dar ekrana sigmiyordu;
+     olculer kucultuldu, mobilde ayrica daraliyor. */
+  .arama button{
+    --ana:#00c805;
+    --ana-zemin:rgba(0,200,5,.30);
+    --desen:rgba(0,200,5,.09);
+    cursor:pointer; text-transform:uppercase; letter-spacing:.34rem;
+    background:
+      radial-gradient(circle, var(--ana-zemin) 0%, rgba(0,0,0,0) 95%),
+      linear-gradient(var(--desen) 1px, transparent 1px),
+      linear-gradient(to right, var(--desen) 1px, transparent 1px);
+    background-size: cover, 15px 15px, 15px 15px;
+    background-position:center center;
+    border-image:radial-gradient(circle, var(--ana) 0%, rgba(0,0,0,0) 100%) 1;
+    border-style:solid; border-width:1px 0 1px 0;
+    color:var(--ana); padding:.85rem 2.1rem; font-weight:700; font-size:1.05rem;
+    white-space:nowrap; transition:background-size .2s ease-in-out, color .2s;}
+  .arama button:hover{background-size:cover, 10px 10px, 10px 10px; color:#7dff86}
+  .arama button:active{filter:hue-rotate(250deg)}
+  .arama button:disabled{opacity:.4;cursor:default;filter:none}
+  .arama button:focus-visible{outline:2px solid var(--yesil);outline-offset:3px}
+
+  .ornekler{margin:14px auto 0;font-size:12.5px;color:var(--gri-koyu);text-align:center}
+  .ornekler b{color:var(--gri);cursor:pointer;font-weight:500;border-bottom:1px dotted var(--kenar)}
+
+  .durum{text-align:center;padding:34px 0;color:var(--gri);font-size:14px}
+  .cubuk{max-width:340px;height:3px;background:var(--kenar);border-radius:99px;margin:16px auto 0;overflow:hidden}
+  .cubuk i{display:block;height:100%;width:30%;background:var(--yesil);border-radius:99px;
+    animation:kay 1.3s ease-in-out infinite}
+  @keyframes kay{0%{transform:translateX(-110%)}100%{transform:translateX(380%)}}
+
+  /* Matrix yukleyici - Uiverse.io / PriyanshuGupta28, Robinhood yesiline uyarlandi */
+  .ai-matrix-loader{
+    width:120px;height:150px;margin:6px auto 18px;position:relative;perspective:800px;
+    display:grid;grid-template-columns:repeat(3,1fr);gap:5px;place-items:center}
+  .ai-matrix-loader .digit{
+    color:var(--yesil);font-family:var(--mono);font-size:18px;
+    text-align:center;text-shadow:0 0 6px var(--yesil);opacity:0;
+    animation:matrix-fall 2s infinite, matrix-flicker .5s infinite}
+  .ai-matrix-loader .digit:nth-child(1){animation-delay:.1s}
+  .ai-matrix-loader .digit:nth-child(2){animation-delay:.3s}
+  .ai-matrix-loader .digit:nth-child(3){animation-delay:.5s}
+  .ai-matrix-loader .digit:nth-child(4){animation-delay:.7s}
+  .ai-matrix-loader .digit:nth-child(5){animation-delay:.9s}
+  .ai-matrix-loader .digit:nth-child(6){animation-delay:1.1s}
+  .ai-matrix-loader .digit:nth-child(7){animation-delay:1.3s}
+  .ai-matrix-loader .digit:nth-child(8){animation-delay:1.5s}
+  .ai-matrix-loader .digit:nth-child(9){animation-delay:1.7s}
+  .ai-matrix-loader .glow{
+    position:absolute;inset:0;pointer-events:none;
+    background:radial-gradient(circle,rgba(0,200,5,.14) 0%,transparent 70%);
+    animation:matrix-pulse 2s infinite}
+  @keyframes matrix-fall{
+    0%{transform:translateY(-46px) rotateX(90deg);opacity:0}
+    20%,80%{transform:translateY(0) rotateX(0deg);opacity:.85}
+    100%{transform:translateY(46px) rotateX(-90deg);opacity:0}}
+  @keyframes matrix-flicker{0%,19%,21%,100%{opacity:.85}20%{opacity:.2}}
+  @keyframes matrix-pulse{0%,100%{opacity:.3}50%{opacity:.7}}
+  /* Hareket hassasiyeti olan kullanicilar icin: animasyon yerine sabit izgara */
+  @media (prefers-reduced-motion: reduce){
+    .ai-matrix-loader .digit{animation:none;opacity:.75}
+    .ai-matrix-loader .glow{animation:none}
+    .cubuk i{animation:none;width:100%}}
+  .kopya{background:transparent;border:1px solid var(--kenar);color:var(--gri);border-radius:8px;
+    font-size:11px;padding:4px 9px;cursor:pointer;margin-top:8px}
+  .kopya:hover{border-color:var(--yesil);color:var(--yesil)}
+  .hata{color:var(--kirmizi)}
+
+  .rapor{margin:26px 0 46px;display:none}
+  /* CRT dokusu ve tarama cizgisi - Uiverse.io / 0xnihilism kartindan alindi.
+     O kartin gerisi (donen kirmizi ucgen, goz, glitch basliklar) alinmadi: rapor kartinda
+     insanlar para karari veren sayilari okuyor, arkada hareketli desen okunurlugu bozuyor.
+     Buradaki iki katman metnin altinda kaliyor ve cok dusuk opaklikta. */
+  .kart{background:rgba(18,22,20,.92);backdrop-filter:blur(2px);position:relative;overflow:visible;border:1px solid var(--kenar);border-radius:16px;padding:20px}
+
+  .kart::after{content:"";position:absolute;inset:0;pointer-events:none;z-index:0;opacity:.5;
+    background:linear-gradient(rgba(18,16,16,0) 50%, rgba(0,0,0,.22) 50%);
+    background-size:100% 3px}
+  .tarama{position:absolute;left:0;right:0;top:0;height:5px;z-index:1;pointer-events:none;
+    background:linear-gradient(to bottom, transparent, rgba(0,200,5,.5), transparent);
+    animation:tarama-kay 3.2s linear infinite}
+  @keyframes tarama-kay{0%{top:-5px}100%{top:100%}}
+  .kart > *{position:relative;z-index:2}
+  @media (prefers-reduced-motion: reduce){ .tarama{display:none} }
+
+  .baslik{display:flex;align-items:flex-start;gap:14px;flex-wrap:wrap;margin-bottom:18px}
+  .sembol{font-size:26px;font-weight:800;letter-spacing:-.02em;line-height:1.1}
+  .isim{color:var(--gri);font-size:13.5px;margin-top:3px}
+  .adres{font-family:var(--mono);font-size:11.5px;color:var(--gri-koyu);
+    margin-top:7px;word-break:break-all}
+  .fiyat{margin-left:auto;text-align:right}
+  .fiyat .mc{font-size:21px;font-weight:800}
+  .fiyat .etiket{font-size:10.5px;color:var(--gri);text-transform:uppercase;
+    letter-spacing:.08em;margin-top:2px}
+
+  .skorbar{display:grid;grid-template-columns:170px 1fr;gap:20px;align-items:center;
+    padding:20px;border:1px solid var(--kenar);border-radius:14px;margin-bottom:16px;background:#0e120f}
+  @media(max-width:640px){.skorbar{grid-template-columns:1fr}}
+  .halka{position:relative;width:150px;height:150px;margin:0 auto}
+  .halka svg{transform:rotate(-90deg)}
+  .halka .ic{position:absolute;inset:0;display:flex;flex-direction:column;
+    align-items:center;justify-content:center}
+  .halka .puan{font-size:40px;font-weight:800;line-height:1}
+  .halka .yuz{font-size:11px;color:var(--gri);margin-top:3px}
+  .ozet{font-size:22px;font-weight:800;letter-spacing:-.02em;margin-bottom:6px}
+  .ozetalt{color:var(--gri);font-size:13.5px;line-height:1.6}
+
+  .kutular{display:grid;grid-template-columns:repeat(auto-fit,minmax(152px,1fr));gap:10px;margin-bottom:16px}
+  .kutu{background:rgba(18,22,20,.92);border:1px solid var(--kenar);border-radius:12px;padding:13px 14px}
+  .kutu .et{font-size:10.5px;color:var(--gri);text-transform:uppercase;letter-spacing:.07em}
+  .kutu .dg{font-size:17px;font-weight:700;margin-top:5px;letter-spacing:-.01em}
+  .kutu .not{font-size:11.5px;color:var(--gri-koyu);margin-top:3px}
+
+  .bolum{font-size:11px;color:var(--gri);text-transform:uppercase;letter-spacing:.1em;
+    margin:22px 0 11px;font-weight:600}
+
+  /* --- Terminal cercevesi: kose parantezli yesil chassis.
+     Dort kose icin iki sozde-eleman yetmiyor; ic <i class="k4"> digerlerini ciziyor. --- */
+  .cerceve{position:relative;border:1px solid rgba(0,200,5,.28);border-radius:10px}
+  .cerceve > .k4{position:absolute;inset:0;pointer-events:none}
+  .cerceve::before, .cerceve::after,
+  .cerceve > .k4::before, .cerceve > .k4::after{
+    content:"";position:absolute;width:16px;height:16px;border:2px solid var(--yesil);pointer-events:none}
+  .cerceve::before{top:-1px;left:-1px;border-width:2px 0 0 2px;border-radius:10px 0 0 0}
+  .cerceve::after{top:-1px;right:-1px;border-width:2px 2px 0 0;border-radius:0 10px 0 0}
+  .cerceve > .k4::before{bottom:-1px;left:-1px;border-width:0 0 2px 2px;border-radius:0 0 0 10px}
+  .cerceve > .k4::after{bottom:-1px;right:-1px;border-width:0 2px 2px 0;border-radius:0 0 10px 0}
+
+  /* --- Tarayici gostergesi - Uiverse.io / cyber-scanner checkbox.
+     Orijinal tiklanabilir bir onay kutusu; bizde OKUNUR gosterge oldugu icin <input> yok,
+     durum .acik sinifiyla veriliyor. #0f0 yerine tema yesili, 40px yerine 22px. --- */
+  .tarayici{width:22px;height:22px;position:relative;background:rgba(0,200,5,.10);flex:none;
+    transition:box-shadow .3s}
+  .tarayici i{position:absolute;width:6px;height:6px;border-color:var(--yesil);border-style:solid;
+    transition:all .3s ease}
+  .tarayici .su{top:0;left:0;border-width:2px 0 0 2px}
+  .tarayici .sa{top:0;right:0;border-width:2px 2px 0 0}
+  .tarayici .au{bottom:0;left:0;border-width:0 0 2px 2px}
+  .tarayici .aa{bottom:0;right:0;border-width:0 2px 2px 0}
+  .tarayici .merkez{top:50%;left:50%;width:4px;height:4px;background:var(--yesil);border-radius:50%;
+    border:0;transform:translate(-50%,-50%) scale(0);box-shadow:0 0 8px var(--yesil);
+    transition:.3s cubic-bezier(.68,-.55,.265,1.55)}
+  .tarayici.acik{box-shadow:inset 0 0 12px rgba(0,200,5,.75)}
+  .tarayici.acik .su{top:6px;left:6px}
+  .tarayici.acik .sa{top:6px;right:6px}
+  .tarayici.acik .au{bottom:6px;left:6px}
+  .tarayici.acik .aa{bottom:6px;right:6px}
+  .tarayici.acik .merkez{transform:translate(-50%,-50%) scale(2.2);background:#fff}
+  .tarayici.kapali{background:rgba(255,77,77,.08)}
+  .tarayici.kapali i{border-color:var(--kirmizi)}
+  .tarayici.kapali .merkez{background:var(--kirmizi);box-shadow:0 0 8px var(--kirmizi)}
+  .tarayici.bos{background:transparent;opacity:.35}
+  .tarayici.bos i{border-color:var(--gri-koyu)}
+  .dsatir{display:flex;align-items:center;gap:10px}
+  @media (prefers-reduced-motion: reduce){ .tarayici, .tarayici i, .tarayici .merkez{transition:none} }
+
+  /* Denetim izgarasi: sade satirlar, olculemeyen alan "-" ile gecer (sahte %0 yazilmaz) */
+  .denetim{display:grid;grid-template-columns:repeat(auto-fit,minmax(134px,1fr));gap:1px;
+    background:rgba(0,200,5,.14);border-radius:10px;overflow:hidden}
+  .dhucre{background:#0e120f;padding:11px 12px;min-height:60px}
+  .dhucre .de{font-size:10px;color:var(--gri);text-transform:uppercase;letter-spacing:.06em;
+    display:flex;align-items:center;gap:5px}
+  .dhucre .dv{font-size:15px;font-weight:700;margin-top:5px;letter-spacing:-.01em}
+  .dhucre .dn{font-size:10.5px;color:var(--gri-koyu);margin-top:2px}
+  .ok{color:var(--yesil)} .yok{color:var(--gri-koyu)} .dikkat{color:var(--sari)} .kotu{color:var(--kirmizi)}
+  .olculemedi{color:var(--gri-koyu);font-weight:400;font-size:13px}
+  .denetimYukleniyor{color:var(--gri-koyu);font-size:12px;padding:14px 2px}
+  .denetimNot{font-size:10.5px;color:var(--gri-koyu);line-height:1.7;margin-top:9px}
+  .risk{display:flex;gap:12px;padding:13px 14px;border:1px solid var(--kenar);
+    border-radius:12px;margin-bottom:8px;background:rgba(18,22,20,.92)}
+  .risk .im{width:22px;height:22px;border-radius:7px;flex:none;display:flex;
+    align-items:center;justify-content:center;font-size:13px;font-weight:800}
+  .risk .bs{font-weight:700;font-size:14px;margin-bottom:3px}
+  .risk .ac{color:var(--gri);font-size:12px;line-height:1.7}
+  .kritik{border-color:#4a1414;background:#160a0a}
+  .kritik .im{background:var(--kirmizi);color:#160a0a}
+  .kritik .bs{color:var(--kirmizi)}
+  .uyari{border-color:#4a3a14}
+  .uyari .im{background:var(--sari);color:#1a1206}
+  .uyari .bs{color:var(--sari)}
+  .bilgi .im{background:var(--kenar);color:var(--gri)}
+  .iyi{border-color:var(--yesil-los)}
+  .iyi .im{background:var(--yesil);color:#00170a}
+  .iyi .bs{color:var(--yesil)}
+
+  /* --- alt bilgi --- */
+  .altbilgi{border-top:1px solid var(--kenar);margin-top:30px;padding:22px 0 34px;
+    color:var(--gri-koyu);font-size:11.5px;line-height:2;text-align:center}
+  .altbilgi b{color:var(--gri);font-weight:600}
+  .altbilgi .ayrac{opacity:.4;margin:0 7px}
+  .altbilgi .x{color:var(--yesil);font-weight:600}
+  .altbilgi .itiraz{margin-top:8px;font-size:11px;line-height:1.8;color:var(--gri-koyu);
+    max-width:560px;margin-left:auto;margin-right:auto}
+
+  .dipnot{color:var(--gri-koyu);font-size:11px;line-height:1.85;margin:26px 0 50px;
+    padding-top:18px;border-top:1px solid var(--kenar)}
+  .dipnot b{color:var(--gri)}
+</style>
+
+<header><div class="sar ust">
+  <div class="logo">
+    <span class="maskot" role="img" aria-label="HoodCheck"></span>
+    HoodCheck
+  </div>
+  <div class="rozet">Robinhood Chain · 4663</div>
+  <div class="dil">
+    <button data-dil="tr">TR</button><button data-dil="en">EN</button>
+  </div>
+</div></header>
+
+<div class="sar">
+  <div class="kahraman">
+    <h1 id="h1"></h1>
+    <p class="alt" id="alt"></p>
+    <div class="terminal">
+      <i class="kose uy"></i><i class="kose us"></i><i class="kose usy"></i><i class="kose uss"></i>
+      <i class="kose ay"></i><i class="kose asol"></i><i class="kose asy"></i><i class="kose asag"></i>
+      <div class="etiket"><span class="ok">&#10148;</span><span class="ad" id="etiketAd"></span><span class="imlec">&#9611;</span></div>
+      <div class="arama">
+        <div class="girisSar">
+          <input id="adres" spellcheck="false" autocomplete="off" type="text" inputmode="text">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"></circle><path d="M20 20l-3.5-3.5"></path></svg>
+        </div>
+        <button id="btn"></button>
+      </div>
+      <div class="terminalNot"><span class="nokta"></span><span id="terminalNot"></span></div>
+    </div>
+    <div class="ornekler"><span id="dene"></span>
+      <b data-a="0xcebc0cfbc5dd0893a9e3b9d0f75b211ddf5934a0">CLAN</b> ·
+      <b data-a="0x4a72b9702f991b790788f8afa9e7112541f4e8f8">ROUTE</b> ·
+      <b data-a="0xbc9cc4b93a08b2dfba87067a9c53e713db3314ce">PINK</b></div>
+  </div>
+
+  <div id="durum" class="durum" style="display:none"></div>
+  <div id="rapor" class="rapor"></div>
+  <div class="dipnot" id="dipnot"></div>
+  <div class="altbilgi" id="altbilgi"></div>
+</div>
+
+<script>
+const $ = (s) => document.querySelector(s);
+const esc = (s) => String(s ?? '').replace(/[<>&]/g, (c) => ({ '<': '&lt;', '>': '&gt;', '&': '&amp;' })[c]);
+
+/* ---------- iki dil ---------- */
+const M = {
+  tr: {
+    kod: 'tr-TR',
+    h1: 'Almadan önce <em>satabilir misin</em> diye bak.',
+    alt: 'Bu zincirde satış simülasyonu yapan başka servis yok. Adresi yapıştır: token gerçekten satılabiliyor mu, al-sat maliyeti ne, ilk dakikada kaç ayrı cüzdan işlem yapmış — hepsini doğrudan zincirden okuyup söylüyoruz.',
+    yer: '➤ 0x… token adresini yapıştır',
+    tara: 'Tara',
+    dene: 'Dene:',
+    yukleniyor: 'Zincirden okunuyor…',
+    asamalar: ['Havuzlar taranıyor…', 'Alım simüle ediliyor…', 'Satış simüle ediliyor…', 'Lansman anı ölçülüyor…', 'Rapor hazırlanıyor…'],
+    kopyala: 'Adresi kopyala', kopyalandi: 'Kopyalandı', paylas: 'Raporu paylaş', baglantiKopyalandi: 'Bağlantı kopyalandı',
+    etiketAd: 'TOKEN_ADRESI',
+    terminalNot: 'Bu araç tuzak arar, fiyat tahmini yapmaz. "Düşük risk" kâr garantisi değildir.',
+    gecersiz: 'Geçerli bir token adresi gir (0x ile başlayan 42 karakter).',
+    hataOnek: 'Hata: ',
+    mc: 'piyasa değeri',
+    bulgular: 'Bulgular',
+    denetimBaslik: 'Token denetimi',
+    d: {
+      holder: 'Holder', transfer: 'Transfer', top10: 'Top 10', enBuyuk: 'En büyük cüzdan',
+      dev: 'DEV payı', kod: 'Kaynak kodu', sahip: 'Sahiplik', pad: 'Launchpad',
+      kilit: 'Likidite kilidi', mezun: 'Eğri', vergi: 'Alım / Satım vergisi',
+      dogrulanmis: 'Doğrulanmış', dogrulanmamis: 'Doğrulanmamış',
+      sahipYok: 'Sahip yok', sahipVar: 'Sahibi var', kilitli: 'Kilitli', kilitsiz: 'Kilit yok',
+      mezunEvet: 'Tamamlandı', mezunHayir: 'Devam ediyor',
+      cuzdanlarHaric: 'havuzlar hariç', olculemedi: 'ölçülemedi', yukleniyor: 'Denetim verisi yükleniyor…',
+      not: 'Bu bölüm bilgi amaçlıdır ve puana etki etmez. DEV payını kendi kapanmış işlemlerimizde ölçtük; kazanan ve kaybeden tokenleri ayırmadı. Insiders / Phishing / Bundler gibi alanlar bu zincirde ölçülemediği için hiç gösterilmiyor — bilinmeyeni %0 yazmak yanıltıcı olur.',
+    },
+    ozetKritik: 'Ölümcül bulgu var — aşağıyı okumadan işlem yapma.',
+    ozetUyari: 'Dikkat edilmesi gereken noktalar var.',
+    ozetTemiz: 'Bariz bir tuzak bulunamadı. Bu kâr garantisi değil.',
+    seviye: { DUSUK: 'DÜŞÜK RİSK', ORTA: 'ORTA RİSK', YUKSEK: 'YÜKSEK RİSK', COK: 'ÇOK RİSKLİ', YOK: 'İŞLEM GÖREMEZ' },
+    kutu: {
+      satilir: 'Satılabilir mi', evet: 'Evet', hayir: 'HAYIR', olculemedi: 'ölçülemedi',
+      simYok: 'simülasyon çalışmadı', maliyet: (p) => `al-sat maliyeti %${p.toFixed(2)}`,
+      ilk60: 'İlk 60 saniye', cuzdanNot: 'ayrı cüzdan işlem yapmış',
+      cikis: 'Çıkış parası', cikisEth: 'doğrudan ETH', cikisUsd: 'stablecoin', cikisDiger: 'ikinci takas gerekir',
+      sembol: 'Aynı sembol', sembolNot: 'farklı token aynı adı taşıyor', sembolTek: 'benzersiz',
+      yas: 'Yaş', yasNot: 'ilk işlemden beri', dk: 'dk', saat: 'saat', gun: 'gün',
+      havuz: 'Havuz sayısı', havuzNot: 'zincirdeki v4 havuzu',
+      yer2: 'İşlem yeri', yerNot: 'en iyi alım yolu',
+    },
+    altbilgi: '© 2026 <b>Nirenta</b> <span class="ayrac">·</span> Ücretsiz ve herkese açık <span class="ayrac">·</span> Geliştirici <span class="x">@Yeafolo</span> <span class="ayrac">·</span> Robinhood Chain 4663'
+      + '<div class="itiraz">Bir sonuca itirazın varsa <span class="x">@Yeafolo</span> hesabına yaz. Bu araç zincirden okuduğu veriyle çalışır ve yanılabilir.</div>',
+    dipnot: '<b>Nasıl çalışıyor:</b> Alımı ve satışı iki ayrı sanal blokta simüle ediyoruz (aralarında 90 saniye var, "aynı blokta al-sat yasak" gibi anti-bot kuralları yanlış alarm vermesin diye), sonra gerçekte cüzdanınıza ne döneceğini hesaplıyoruz. Tüm veri doğrudan zincirden okunur; üçüncü parti servis kullanılmaz.<br><b>Bu bir yatırım tavsiyesi değildir.</b> Simülasyon o anki havuz durumunu ölçer; likidite bir sonraki blokta çekilebilir. "Düşük risk" çıkan bir token da para kaybettirebilir — araç tuzağı tespit eder, fiyatın yükseleceğini söylemez.',
+    b: {
+      'havuz-yok': ['Alınabilir havuz yok', 'Bu token için likidite bulunamadı. Ne alınabilir ne satılabilir.'],
+      'satis-olculemedi': ['Satılabilirlik doğrulanamadı', 'Simülasyon çalıştırılamadı. Satabildiğinizi teyit etmeden büyük miktar girmeyin.'],
+      'alim-basarisiz': ['Satılabilirlik doğrulanamadı', (d) => `Alım simülasyonu başarısız oldu (${d.sebep}). Bu, tokenin satılamadığı anlamına GELMEZ — ölçemedik demektir.`],
+      'satilamaz': ['SATILAMIYOR', (d) => 'Denenen rotaların hepsinde satış işlemi geri döndü. Bu tokeni alırsanız paranızı çıkaramayabilirsiniz.' + (d.sebep ? ` — teknik sebep: ${String(d.sebep).replace(/^HONEYPOT SUPHESI: simulasyonda SATIS revert /, '').slice(0, 110)}` : '')],
+      'maliyet-olumcul': [(d) => `Satışta paranın %${d.pct.toFixed(0)}'i yok oluyor`, 'Satış işlemi geçiyor ama elinize neredeyse hiçbir şey geçmiyor. Pratikte honeypot ile aynı sonuç.'],
+      'maliyet-yuksek': [(d) => `Al-sat maliyeti yüksek: %${d.pct.toFixed(1)}`, 'Alıp hemen satsanız bu kadarını kaybedersiniz. Yüksek vergi veya ince havuz.'],
+      'maliyet-orta': [(d) => `Al-sat maliyeti %${d.pct.toFixed(1)}`, 'Normalin üstünde ama ölümcül değil.'],
+      'satilabilir': [(d) => `Satılabiliyor, al-sat maliyeti %${d.pct.toFixed(1)}`, 'Simülasyonda alım ve satım başarılı.'],
+      'cikis-parasi': [(d) => `Çıkış parası ETH değil: ${d.para}`, 'Sattığınızda ETH değil bu varlığı alırsınız; nakde dönmek için ikinci bir takas gerekir ve o havuz ince olabilir.'],
+      'islem-yok': ['Hiç işlem görmemiş', 'Havuz açılmış ama ilk 6 saatte tek bir alım satım bile yok.'],
+      'cok-yeni': [(d) => `Havuz ${d.dk} dakika önce açılmış, henüz işlem yok`, 'Değerlendirmek için çok erken.'],
+      'cok-taze': [(d) => `Bu token ${d.dk} dakikalık`, 'Simülasyon şu an satılabildiğini gösteriyor ama likidite bir sonraki blokta çekilebilir ve gerçek talep oluşup oluşmayacağı henüz belli değil. Yeni çıkmış bir tokene "düşük risk" diyemeyiz.'],
+      'alici-yok': [(d) => `İlk dakikada ${d.n} cüzdan`, 'Lansmanda gerçek talep oluşmamış; fiyat tek bir cüzdanla oynatılmış olabilir.'],
+      'alici-az': [(d) => `İlk dakikada sadece ${d.n} cüzdan`, 'Zayıf ilgi. Fiyat az sayıda cüzdanla yönlendirilmiş olabilir.'],
+      'alici-iyi': [(d) => `İlk dakikada ${d.n} ayrı cüzdan işlem yapmış`, 'Lansmanda gerçek ilgi oluşmuş.'],
+      'sembol-cok': [(d) => `Aynı sembolde ${d.n} farklı token var`, 'Bu isim yoğun şekilde taklit ediliyor. Adresi mutlaka doğrulayın.'],
+      'sembol-az': [(d) => `Aynı sembolde ${d.n} token`, 'Adresi kontrol edin.'],
+      'bilgi-yok': ['Zincirde hiçbir bilgi yok', 'Açıklama ve sosyal medya bağı bulunmuyor.'],
+    },
+  },
+  en: {
+    kod: 'en-US',
+    h1: 'Check you can <em>sell it</em> before you buy it.',
+    alt: 'No other service simulates selling on this chain. Paste an address: can the token actually be sold, what does a round trip cost, how many separate wallets traded it in the first minute — all read straight from the chain.',
+    yer: '➤ paste the 0x… token address',
+    tara: 'Scan',
+    dene: 'Try:',
+    yukleniyor: 'Reading the chain…',
+    asamalar: ['Scanning pools…', 'Simulating the buy…', 'Simulating the sell…', 'Measuring the launch…', 'Building the report…'],
+    kopyala: 'Copy address', kopyalandi: 'Copied', paylas: 'Share report', baglantiKopyalandi: 'Link copied',
+    etiketAd: 'TOKEN_ADDRESS',
+    terminalNot: 'This tool looks for traps, it does not predict price. "Low risk" is not a promise of profit.',
+    gecersiz: 'Enter a valid token address (42 characters starting with 0x).',
+    hataOnek: 'Error: ',
+    mc: 'market cap',
+    bulgular: 'Findings',
+    denetimBaslik: 'Token audit',
+    d: {
+      holder: 'Holders', transfer: 'Transfers', top10: 'Top 10', enBuyuk: 'Largest wallet',
+      dev: 'DEV holding', kod: 'Source code', sahip: 'Ownership', pad: 'Launchpad',
+      kilit: 'Liquidity lock', mezun: 'Bonding curve', vergi: 'Buy / Sell tax',
+      dogrulanmis: 'Verified', dogrulanmamis: 'Unverified',
+      sahipYok: 'No owner', sahipVar: 'Has owner', kilitli: 'Locked', kilitsiz: 'Not locked',
+      mezunEvet: 'Graduated', mezunHayir: 'In progress',
+      cuzdanlarHaric: 'pools excluded', olculemedi: 'not available', yukleniyor: 'Loading audit data…',
+      not: 'This section is informational and does not affect the score. We measured DEV holding against our own closed trades and it did not separate winners from losers. Fields such as Insiders / Phishing / Bundler are not shown at all because they cannot be measured on this chain — printing 0% for something unknown would be misleading.',
+    },
+    ozetKritik: 'Fatal finding — read below before trading.',
+    ozetUyari: 'There are things to watch out for.',
+    ozetTemiz: 'No obvious trap found. This is not a promise of profit.',
+    seviye: { DUSUK: 'LOW RISK', ORTA: 'MEDIUM RISK', YUKSEK: 'HIGH RISK', COK: 'VERY RISKY', YOK: 'NOT TRADEABLE' },
+    kutu: {
+      satilir: 'Can you sell', evet: 'Yes', hayir: 'NO', olculemedi: 'not measured',
+      simYok: 'simulation failed', maliyet: (p) => `round trip costs ${p.toFixed(2)}%`,
+      ilk60: 'First 60 seconds', cuzdanNot: 'separate wallets traded',
+      cikis: 'Exit currency', cikisEth: 'straight to ETH', cikisUsd: 'stablecoin', cikisDiger: 'needs a second swap',
+      sembol: 'Same symbol', sembolNot: 'other tokens share this name', sembolTek: 'unique',
+      yas: 'Age', yasNot: 'since first trade', dk: 'min', saat: 'hours', gun: 'days',
+      havuz: 'Pool count', havuzNot: 'v4 pools on chain',
+      yer2: 'Venue', yerNot: 'best buy route',
+    },
+    altbilgi: '© 2026 <b>Nirenta</b> <span class="ayrac">·</span> Free and open to everyone <span class="ayrac">·</span> Built by <span class="x">@Yeafolo</span> <span class="ayrac">·</span> Robinhood Chain 4663'
+      + '<div class="itiraz">If you disagree with a verdict, write to <span class="x">@Yeafolo</span>. This tool works from on-chain data and it can be wrong.</div>',
+    dipnot: '<b>How it works:</b> We simulate the buy and the sell in two separate virtual blocks, 90 seconds apart, so anti-bot rules such as "no buy and sell in the same block" do not raise a false alarm — then we compute what would actually land back in your wallet. Every number is read directly from the chain; no third-party service is involved.<br><b>This is not investment advice.</b> The simulation measures the pool as it is right now; liquidity can be pulled in the very next block. A token marked "low risk" can still lose you money — the tool detects traps, it does not predict price.',
+    b: {
+      'havuz-yok': ['No pool to buy from', 'No liquidity found for this token. It can be neither bought nor sold.'],
+      'satis-olculemedi': ['Sellability not verified', 'The simulation could not run. Do not commit a large amount before confirming you can sell.'],
+      'alim-basarisiz': ['Sellability not verified', (d) => `The buy simulation failed (${d.sebep}). This does NOT mean the token cannot be sold — it means we could not measure it.`],
+      'satilamaz': ['CANNOT BE SOLD', (d) => 'The sell reverted on every route we tried. If you buy this token you may not be able to get your money out.' + (d.sebep ? ` — technical reason: ${String(d.sebep).replace(/^HONEYPOT SUPHESI: simulasyonda SATIS revert /, '').slice(0, 110)}` : '')],
+      'maliyet-olumcul': [(d) => `${d.pct.toFixed(0)}% of your money disappears on the sell`, 'The sell goes through but almost nothing comes back. Same outcome as a honeypot in practice.'],
+      'maliyet-yuksek': [(d) => `High round-trip cost: ${d.pct.toFixed(1)}%`, 'Buying and immediately selling would cost you this much. High tax or a thin pool.'],
+      'maliyet-orta': [(d) => `Round-trip cost ${d.pct.toFixed(1)}%`, 'Above normal but not fatal.'],
+      'satilabilir': [(d) => `Sellable, round-trip cost ${d.pct.toFixed(1)}%`, 'Both the buy and the sell succeeded in simulation.'],
+      'cikis-parasi': [(d) => `Exit currency is not ETH: ${d.para}`, 'When you sell you receive this asset, not ETH; converting to cash needs a second swap and that pool may be thin.'],
+      'islem-yok': ['Never traded', 'A pool exists but not a single buy or sell happened in the first 6 hours.'],
+      'cok-yeni': [(d) => `Pool opened ${d.dk} minutes ago, no trades yet`, 'Too early to judge.'],
+      'cok-taze': [(d) => `This token is ${d.dk} minutes old`, 'The simulation shows it can be sold right now, but liquidity can be pulled in the very next block and there is no way to tell yet whether real demand will form. We cannot call a brand-new token low risk.'],
+      'alici-yok': [(d) => `${d.n} wallet in the first minute`, 'No real demand at launch; the price may have been moved by a single wallet.'],
+      'alici-az': [(d) => `Only ${d.n} wallets in the first minute`, 'Weak interest. The price may be steered by a handful of wallets.'],
+      'alici-iyi': [(d) => `${d.n} separate wallets traded in the first minute`, 'Genuine interest formed at launch.'],
+      'sembol-cok': [(d) => `${d.n} different tokens share this symbol`, 'This name is heavily impersonated. Always verify the address.'],
+      'sembol-az': [(d) => `${d.n} tokens share this symbol`, 'Check the address.'],
+      'bilgi-yok': ['Nothing on chain about it', 'No description and no social link.'],
+    },
+  },
+};
+
+// Dil onceligi: adres > daha once secilen dil > tarayici dili.
+// /en paylasilan Ingilizce baglantidir; oraya gelen kisi Ingilizce gormeli.
+const yolDili = location.pathname.replace(/\/+$/, '').endsWith('/en') ? 'en'
+  : location.pathname.replace(/\/+$/, '') === '' ? null : null;
+let dil = yolDili ?? (((localStorage.getItem('hoodcheck-dil') || (navigator.language || '').slice(0, 2)) === 'en') ? 'en' : 'tr');
+let sonRapor = null;
+const t = () => M[dil];
+
+const metin = (v, d) => (typeof v === 'function' ? v(d || {}) : v);
+const par = (n) => n === undefined || n === null ? '—' : '$' + Math.round(n).toLocaleString(t().kod);
+
+function dilUygula() {
+  document.documentElement.lang = dil;
+  $('#h1').innerHTML = t().h1;
+  $('#alt').textContent = t().alt;
+  $('#adres').placeholder = t().yer;
+  $('#etiketAd').textContent = t().etiketAd;
+  $('#terminalNot').innerHTML = `<b>${dil === 'tr' ? 'UYARI:' : 'WARNING:'}</b> ${esc(t().terminalNot)}`;
+  $('#btn').textContent = t().tara;
+  $('#dene').textContent = t().dene;
+  $('#dipnot').innerHTML = t().dipnot;
+  $('#altbilgi').innerHTML = t().altbilgi;
+  document.querySelectorAll('.dil button').forEach((b) => b.classList.toggle('acik', b.dataset.dil === dil));
+  if (sonRapor) ciz(sonRapor);
+}
+
+/* ---------- rapor ---------- */
+function renkPuan(p) { return p >= 75 ? 'var(--yesil)' : p >= 45 ? 'var(--sari)' : 'var(--kirmizi)'; }
+function ozetAd(p, havuzYok) {
+  if (havuzYok) return t().seviye.YOK;
+  return p >= 75 ? t().seviye.DUSUK : p >= 45 ? t().seviye.ORTA : p >= 20 ? t().seviye.YUKSEK : t().seviye.COK;
+}
+
+function halka(puan) {
+  const R = 66, C = 2 * Math.PI * R, dolu = C * (puan / 100), renk = renkPuan(puan);
+  return `<div class="halka">
+    <svg width="150" height="150" viewBox="0 0 150 150">
+      <circle cx="75" cy="75" r="${R}" fill="none" stroke="#1e2622" stroke-width="11"/>
+      <circle cx="75" cy="75" r="${R}" fill="none" stroke="${renk}" stroke-width="11"
+        stroke-linecap="round" stroke-dasharray="${dolu} ${C - dolu}"/>
+    </svg>
+    <div class="ic"><div class="puan" style="color:${renk}">${puan}</div><div class="yuz">/ 100</div></div>
+  </div>`;
+}
+
+const IM = { kritik: '!', uyari: '!', bilgi: 'i', iyi: '✓' };
+
+function ciz(d) {
+  sonRapor = d;
+  const K = [], k = t().kutu;
+  const kutu = (et, dg, not) => K.push(`<div class="kutu"><div class="et">${et}</div><div class="dg">${dg}</div>${not ? `<div class="not">${not}</div>` : ''}</div>`);
+
+  if (d.satilabilir !== undefined) {
+    kutu(k.satilir,
+      d.satilabilir ? `<span style="color:var(--yesil)">${k.evet}</span>` : `<span style="color:var(--kirmizi)">${k.hayir}</span>`,
+      d.alSatMaliyetiPct !== undefined ? k.maliyet(d.alSatMaliyetiPct) : '');
+  } else {
+    kutu(k.satilir, `<span style="color:var(--gri)">${k.olculemedi}</span>`, k.simYok);
+  }
+  if (d.ilkDakikaAlici !== undefined) {
+    const c = d.ilkDakikaAlici >= 5 ? 'var(--yesil)' : d.ilkDakikaAlici >= 2 ? 'var(--sari)' : 'var(--kirmizi)';
+    kutu(k.ilk60, `<span style="color:${c}">${d.ilkDakikaAlici}</span>`, k.cuzdanNot);
+  }
+  if (d.karsiPara) {
+    kutu(k.cikis, esc(d.karsiPara),
+      d.karsiParaTipi === 'ETH' ? k.cikisEth : d.karsiParaTipi === 'USDG' ? k.cikisUsd : k.cikisDiger);
+  }
+  if (d.ayniSembolAdet) {
+    const c = d.ayniSembolAdet >= 5 ? 'var(--sari)' : 'var(--beyaz)';
+    kutu(k.sembol, `<span style="color:${c}">${d.ayniSembolAdet}</span>`, d.ayniSembolAdet > 1 ? k.sembolNot : k.sembolTek);
+  }
+  if (d.yasSaat !== undefined) {
+    const y = d.yasSaat < 1 ? `${Math.round(d.yasSaat * 60)} ${k.dk}`
+      : d.yasSaat < 48 ? `${d.yasSaat.toFixed(1)} ${k.saat}`
+      : `${Math.round(d.yasSaat / 24)} ${k.gun}`;
+    kutu(k.yas, y, k.yasNot);
+  }
+  if (d.havuzSayisi) kutu(k.havuz, d.havuzSayisi.toLocaleString(t().kod), k.havuzNot);
+  if (d.rota) {
+    // Etiket uzunsa parantez ortasindan kesmeyelim: acik parantez varsa oncesinden kes.
+    let yer = String(d.rota);
+    if (yer.length > 26) {
+      const kes = yer.lastIndexOf('(', 26);
+      yer = (kes > 8 ? yer.slice(0, kes) : yer.slice(0, 25)).trim() + '…';
+    }
+    kutu(k.yer2, esc(yer), k.yerNot);
+  }
+
+  const sira = { kritik: 0, uyari: 1, bilgi: 2, iyi: 3 };
+  const rl = (d.riskler || []).slice().sort((a, b) => sira[a.seviye] - sira[b.seviye]);
+  const kritikVar = rl.some((x) => x.seviye === 'kritik');
+  const uyariVar = rl.some((x) => x.seviye === 'uyari');
+
+  $('#rapor').innerHTML = `
+    <div class="kart cerceve">
+      <i class="k4"></i>
+      <div class="tarama"></div>
+      <div class="baslik">
+        <div>
+          <div class="sembol">${esc(d.sembol)}</div>
+          <div class="isim">${esc(d.ad)}</div>
+          <div class="adres">${esc(d.adres)}</div>
+          <button class="kopya" id="kopyaAdres">${t().kopyala}</button>
+          <button class="kopya" id="kopyaLink">${t().paylas}</button>
+        </div>
+        <div class="fiyat">
+          <div class="mc">${par(d.mcUsd)}</div>
+          <div class="etiket">${t().mc}</div>
+        </div>
+      </div>
+
+      <div class="skorbar">
+        ${halka(d.puan)}
+        <div>
+          <div class="ozet" style="color:${renkPuan(d.puan)}">${ozetAd(d.puan, rl.some((x) => x.kod === 'havuz-yok'))}</div>
+          <div class="ozetalt">${kritikVar ? t().ozetKritik : uyariVar ? t().ozetUyari : t().ozetTemiz}</div>
+        </div>
+      </div>
+
+      <div class="kutular">${K.join('')}</div>
+
+      <div class="bolum">${t().denetimBaslik}</div>
+      <div id="denetimAlan"></div>
+      <div class="denetimNot">${esc(t().d.not)}</div>
+
+      <div class="bolum">${t().bulgular} (${rl.length})</div>
+      ${rl.map((x) => {
+        // Seviye dogrudan CSS sinifina giriyor: sunucudan gelen degeri beyaz listeden gecir.
+        const sev = ['kritik', 'uyari', 'bilgi', 'iyi'].includes(x.seviye) ? x.seviye : 'bilgi';
+        const sz = t().b[x.kod];
+        const bs = sz ? metin(sz[0], x.deger) : x.baslik;
+        const ac = sz ? metin(sz[1], x.deger) : x.aciklama;
+        return `<div class="risk ${sev}">
+          <div class="im">${IM[sev]}</div>
+          <div><div class="bs">${esc(bs)}</div><div class="ac">${esc(ac)}</div></div>
+        </div>`;
+      }).join('')}
+    </div>`;
+  $('#rapor').style.display = 'block';
+
+  // Paylasilabilir adres: rapor acikken URL'de token dursun ki link gonderilebilsin.
+  try { history.replaceState(null, '', '?token=' + d.adres); } catch { /* onemli degil */ }
+
+  void denetimGetir(d);
+
+  const kopyala = (metin, dugme, etiket) => {
+    navigator.clipboard?.writeText(metin).then(() => {
+      const eski = dugme.textContent;
+      dugme.textContent = etiket;
+      setTimeout(() => { dugme.textContent = eski; }, 1500);
+    }).catch(() => { /* izin yoksa sessiz gec */ });
+  };
+  const a = $('#kopyaAdres'), l = $('#kopyaLink');
+  if (a) a.onclick = () => kopyala(d.adres, a, t().kopyalandi);
+  if (l) l.onclick = () => kopyala(location.origin + location.pathname + '?token=' + d.adres, l, t().baglantiKopyalandi);
+}
+
+// Denetim ayri uctan gelir (dis kaynaklar yavas). Rapor cizildikten SONRA doldurulur;
+// gelmezse bolum "olculemedi" ile kalir, rapor asla beklemez.
+function cizDenetim(d, den) {
+  const alan = $('#denetimAlan');
+  if (!alan) return;
+  const D = t().d;
+  const yuzde = (v) => (v * 100).toFixed(v * 100 >= 10 ? 0 : 1) + '%';
+  const dh = [];
+  const hucre = (etiket, deger, not) => dh.push(
+    `<div class="dhucre"><div class="de">${etiket}</div>` +
+    `<div class="dv">${deger}</div>${not ? `<div class="dn">${not}</div>` : ''}</div>`);
+  const bos = `<span class="olculemedi">${D.olculemedi}</span>`;
+  const gosterge = (durum) =>
+    `<span class="tarayici ${durum}"><i class="su"></i><i class="sa"></i><i class="au"></i>` +
+    `<i class="aa"></i><i class="merkez"></i></span>`;
+  const evetHayir = (etiket, deger, metinAcik, metinKapali) => {
+    const durum = deger === undefined ? 'bos' : deger ? 'acik' : 'kapali';
+    const metin = deger === undefined ? bos : deger ? metinAcik : metinKapali;
+    dh.push(`<div class="dhucre"><div class="de">${etiket}</div>` +
+      `<div class="dsatir" style="margin-top:6px">${gosterge(durum)}<span class="dv" style="margin:0;font-size:13px">${metin}</span></div></div>`);
+  };
+
+  if (d.satilabilir !== undefined) evetHayir(t().kutu.satilir, d.satilabilir, t().kutu.evet, t().kutu.hayir);
+  hucre(D.holder, den.holderSayisi !== undefined
+    ? `<span class="${den.holderSayisi >= 500 ? 'ok' : den.holderSayisi >= 50 ? '' : 'dikkat'}">${den.holderSayisi.toLocaleString(t().kod)}</span>` : bos,
+    den.transferSayisi !== undefined ? `${den.transferSayisi.toLocaleString(t().kod)} ${D.transfer.toLowerCase()}` : '');
+  hucre(D.top10, den.top10Pay !== undefined
+    ? `<span class="${den.top10Pay > .5 ? 'kotu' : den.top10Pay > .25 ? 'dikkat' : 'ok'}">${yuzde(den.top10Pay)}</span>` : bos, D.cuzdanlarHaric);
+  hucre(D.enBuyuk, den.enBuyukPay !== undefined
+    ? `<span class="${den.enBuyukPay > .2 ? 'kotu' : den.enBuyukPay > .1 ? 'dikkat' : 'ok'}">${yuzde(den.enBuyukPay)}</span>` : bos, '');
+  hucre(D.dev, den.devPay !== undefined ? yuzde(den.devPay) : bos, den.devAdres ? esc(den.devAdres.slice(0, 8)) + '…' : '');
+  evetHayir(D.kod, den.kodDogrulanmis, D.dogrulanmis, D.dogrulanmamis);
+  // Sahiplik TERS mantik: sahip fonksiyonunun OLMAMASI iyi haber (devredilecek yetki yok).
+  evetHayir(D.sahip, den.sahipVar === undefined ? undefined : !den.sahipVar, D.sahipYok, D.sahipVar);
+  if (den.likiditeKilitli !== undefined) evetHayir(D.kilit, den.likiditeKilitli, D.kilitli, D.kilitsiz);
+  if (den.launchpad) hucre(D.pad, esc(den.launchpad), den.mezunMu === undefined ? '' : den.mezunMu ? D.mezunEvet : D.mezunHayir);
+  if (den.alimVergisiBps !== undefined || den.satimVergisiBps !== undefined)
+    hucre(D.vergi, `${((den.alimVergisiBps ?? 0) / 100).toFixed(2)}% / ${((den.satimVergisiBps ?? 0) / 100).toFixed(2)}%`, '');
+
+  alan.innerHTML = `<div class="denetim cerceve"><i class="k4"></i>${dh.join('')}</div>`;
+}
+
+async function denetimGetir(d) {
+  $('#denetimAlan').innerHTML = `<div class="denetimYukleniyor">${esc(t().d.yukleniyor)}</div>`;
+  try {
+    const r = await fetch('/api/denetim?token=' + d.adres);
+    cizDenetim(d, r.ok ? await r.json() : {});
+  } catch { cizDenetim(d, {}); }
+}
+
+async function tara(a) {
+  const adres = (a || $('#adres').value || '').trim();
+  if (!/^0x[0-9a-fA-F]{40}$/.test(adres)) {
+    $('#durum').style.display = 'block';
+    $('#durum').className = 'durum hata';
+    $('#durum').textContent = t().gecersiz;
+    return;
+  }
+  $('#rapor').style.display = 'none';
+  sonRapor = null;
+  $('#durum').style.display = 'block';
+  $('#durum').className = 'durum';
+  // Tarama 8-20 sn surebiliyor. Tek satir yazi karsisinda bekletmek yerine hangi asamada
+  // oldugumuzu soyleriz; sureler gercek olcumlerden (havuz taramasi en uzun adim) alindi.
+  const asamalar = t().asamalar;
+  let ad = 0;
+  $('#durum').innerHTML =
+    `<div class="ai-matrix-loader">${'<span class="digit">0</span>'.repeat(9)}<div class="glow"></div></div>`
+    + `<div id="asama"></div><div class="cubuk"><i></i></div>`;
+  const asamaYaz = () => { const e = $('#asama'); if (e) e.textContent = asamalar[Math.min(ad, asamalar.length - 1)]; };
+  asamaYaz();
+  const sayac = setInterval(() => { ad++; asamaYaz(); }, 3200);
+  // Rakamlar sabit dursa "matrix" hissi olusmuyor; hexadecimal karakterlerle donduruyoruz
+  // (taradigimiz sey zaten hex adresler).
+  const HEX = '0123456789abcdef';
+  const kutular = [...document.querySelectorAll('.ai-matrix-loader .digit')];
+  const akis = setInterval(() => {
+    for (const k of kutular) if (Math.random() < 0.55) k.textContent = HEX[(Math.random() * 16) | 0];
+  }, 110);
+  $('#btn').disabled = true;
+  try {
+    const r = await fetch('/api/tokencheck?token=' + adres);
+    const j = await r.json();
+    if (!r.ok) throw new Error(j.error || 'scan failed');
+    $('#durum').style.display = 'none';
+    $('#durum').innerHTML = '';        // yukleyiciyi DOM'da birakma
+    ciz(j);
+  } catch (e) {
+    $('#durum').className = 'durum hata';
+    $('#durum').textContent = t().hataOnek + e.message;
+  } finally {
+    clearInterval(sayac);
+    clearInterval(akis);
+    $('#btn').disabled = false;
+  }
+}
+
+document.querySelectorAll('.dil button').forEach((b) => {
+  b.onclick = () => { dil = b.dataset.dil; localStorage.setItem('hoodcheck-dil', dil); dilUygula(); };
+});
+$('#btn').onclick = () => tara();
+$('#adres').addEventListener('keydown', (e) => { if (e.key === 'Enter') tara(); });
+document.querySelectorAll('.ornekler b').forEach((b) => {
+  b.onclick = () => { $('#adres').value = b.dataset.a; tara(b.dataset.a); };
+});
+dilUygula();
+
+// Baglantiyla gelindiyse (paylasilmis rapor) dogrudan tara
+const acilisToken = new URLSearchParams(location.search).get('token');
+if (acilisToken && /^0x[0-9a-fA-F]{40}$/.test(acilisToken)) {
+  $('#adres').value = acilisToken;
+  tara(acilisToken);
+}
+</script>

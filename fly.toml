@@ -1,0 +1,32 @@
+# HoodCheck - Fly.io yapilandirmasi
+# app adini kendi sectiginle degistir; SITE_URL de o adresi gostermeli.
+app = "hoodcheck"
+primary_region = "fra"        # Frankfurt - Turkiye'ye en yakin bolge
+
+[build]
+
+[env]
+  HOODCHECK_HOST = "0.0.0.0"
+  HOODCHECK_PORT = "8080"
+  TRUST_PROXY = "1"                        # Fly vekili onde: gercek IP X-Forwarded-For'da
+  SITE_URL = "https://hoodcheck.fly.dev"   # kendi adresinle degistir
+  # HOODCHECK_RPC BURAYA YAZILMAZ - anahtar icerir:
+  #   fly secrets set HOODCHECK_RPC="https://..."
+
+[http_service]
+  internal_port = 8080
+  force_https = true
+  auto_stop_machines = "suspend"   # bos durunca uyur, ilk istekte ~1 sn'de uyanir
+  auto_start_machines = true
+  min_machines_running = 0
+
+  [[http_service.checks]]
+    interval = "30s"
+    timeout = "5s"
+    grace_period = "25s"
+    method = "GET"
+    path = "/saglik"
+
+[[vm]]
+  size = "shared-cpu-1x"
+  memory = "512mb"       # 256mb ethers + tarama icin dar kaliyor
