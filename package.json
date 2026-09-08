@@ -1,7 +1,7 @@
 {
   "name": "hoodcheck",
   "version": "1.0.0",
-  "private": true,
+  "license": "MIT",
   "type": "module",
   "description": "Robinhood Chain token risk tarayicisi - halka acik, salt okunur",
   "scripts": {
