@@ -298,6 +298,7 @@
   .altbilgi b{color:var(--gri);font-weight:600}
   .altbilgi .ayrac{opacity:.4;margin:0 7px}
   .altbilgi .x{color:var(--yesil);font-weight:600}
+  .altbilgi .uretim{margin-top:6px;font-size:10.5px;color:rgba(0,200,5,.55);letter-spacing:.02em}
   .altbilgi .itiraz{margin-top:8px;font-size:11px;line-height:1.8;color:var(--gri-koyu);
     max-width:560px;margin-left:auto;margin-right:auto}
 
@@ -379,7 +380,7 @@ const M = {
     ozetTemiz: 'Bariz bir tuzak bulunamadı. Bu kâr garantisi değil.',
     seviye: { DUSUK: 'DÜŞÜK RİSK', ORTA: 'ORTA RİSK', YUKSEK: 'YÜKSEK RİSK', COK: 'ÇOK RİSKLİ', YOK: 'İŞLEM GÖREMEZ' },
     kutu: {
-      satilir: 'Satılabilir mi', evet: 'Evet', hayir: 'HAYIR', olculemedi: 'ölçülemedi',
+      satilir: 'Satılabilir mi', evet: 'Evet', hayir: 'HAYIR', pratikteHayir: 'PRATİKTE HAYIR', olculemedi: 'ölçülemedi',
       simYok: 'simülasyon çalışmadı', maliyet: (p) => `al-sat maliyeti %${p.toFixed(2)}`,
       ilk60: 'İlk 60 saniye', cuzdanNot: 'ayrı cüzdan işlem yapmış',
       cikis: 'Çıkış parası', cikisEth: 'doğrudan ETH', cikisUsd: 'stablecoin', cikisDiger: 'ikinci takas gerekir',
@@ -389,6 +390,7 @@ const M = {
       yer2: 'İşlem yeri', yerNot: 'en iyi alım yolu',
     },
     altbilgi: '© 2026 <b>Nirenta</b> <span class="ayrac">·</span> Ücretsiz ve herkese açık <span class="ayrac">·</span> Geliştirici <span class="x">@Yeafolo</span> <span class="ayrac">·</span> Robinhood Chain 4663'
+      + '<div class="uretim">Bu araç bir yapay zekâ ajanıyla, agentic loop yöntemiyle geliştirildi.</div>'
       + '<div class="itiraz">Bir sonuca itirazın varsa <span class="x">@Yeafolo</span> hesabına yaz. Bu araç zincirden okuduğu veriyle çalışır ve yanılabilir.</div>',
     dipnot: '<b>Nasıl çalışıyor:</b> Alımı ve satışı iki ayrı sanal blokta simüle ediyoruz (aralarında 90 saniye var, "aynı blokta al-sat yasak" gibi anti-bot kuralları yanlış alarm vermesin diye), sonra gerçekte cüzdanınıza ne döneceğini hesaplıyoruz. Tüm veri doğrudan zincirden okunur; üçüncü parti servis kullanılmaz.<br><b>Bu bir yatırım tavsiyesi değildir.</b> Simülasyon o anki havuz durumunu ölçer; likidite bir sonraki blokta çekilebilir. "Düşük risk" çıkan bir token da para kaybettirebilir — araç tuzağı tespit eder, fiyatın yükseleceğini söylemez.',
     b: {
@@ -443,7 +445,7 @@ const M = {
     ozetTemiz: 'No obvious trap found. This is not a promise of profit.',
     seviye: { DUSUK: 'LOW RISK', ORTA: 'MEDIUM RISK', YUKSEK: 'HIGH RISK', COK: 'VERY RISKY', YOK: 'NOT TRADEABLE' },
     kutu: {
-      satilir: 'Can you sell', evet: 'Yes', hayir: 'NO', olculemedi: 'not measured',
+      satilir: 'Can you sell', evet: 'Yes', hayir: 'NO', pratikteHayir: 'NOT IN PRACTICE', olculemedi: 'not measured',
       simYok: 'simulation failed', maliyet: (p) => `round trip costs ${p.toFixed(2)}%`,
       ilk60: 'First 60 seconds', cuzdanNot: 'separate wallets traded',
       cikis: 'Exit currency', cikisEth: 'straight to ETH', cikisUsd: 'stablecoin', cikisDiger: 'needs a second swap',
@@ -453,6 +455,7 @@ const M = {
       yer2: 'Venue', yerNot: 'best buy route',
     },
     altbilgi: '© 2026 <b>Nirenta</b> <span class="ayrac">·</span> Free and open to everyone <span class="ayrac">·</span> Built by <span class="x">@Yeafolo</span> <span class="ayrac">·</span> Robinhood Chain 4663'
+      + '<div class="uretim">Built with an AI agent, using an agentic loop.</div>'
       + '<div class="itiraz">If you disagree with a verdict, write to <span class="x">@Yeafolo</span>. This tool works from on-chain data and it can be wrong.</div>',
     dipnot: '<b>How it works:</b> We simulate the buy and the sell in two separate virtual blocks, 90 seconds apart, so anti-bot rules such as "no buy and sell in the same block" do not raise a false alarm — then we compute what would actually land back in your wallet. Every number is read directly from the chain; no third-party service is involved.<br><b>This is not investment advice.</b> The simulation measures the pool as it is right now; liquidity can be pulled in the very next block. A token marked "low risk" can still lose you money — the tool detects traps, it does not predict price.',
     b: {
@@ -529,9 +532,15 @@ function ciz(d) {
   const K = [], k = t().kutu;
   const kutu = (et, dg, not) => K.push(`<div class="kutu"><div class="et">${et}</div><div class="dg">${dg}</div>${not ? `<div class="not">${not}</div>` : ''}</div>`);
 
+  // OLUMCUL MALIYET = PRATIKTE SATILAMAZ. LIQXOR'da (kayip %91.2) bu kutu yesil "Evet"
+  // yaziyordu; puan 17 COK RISKLI oldugu halde en buyuk punto guvence veriyordu. Satis
+  // isleminin teknik olarak gecmesi, paranin geri gelmesi demek degil.
+  const olumculKayip = d.alSatMaliyetiPct !== undefined && d.alSatMaliyetiPct >= 50;
   if (d.satilabilir !== undefined) {
     kutu(k.satilir,
-      d.satilabilir ? `<span style="color:var(--yesil)">${k.evet}</span>` : `<span style="color:var(--kirmizi)">${k.hayir}</span>`,
+      d.satilabilir && !olumculKayip ? `<span style="color:var(--yesil)">${k.evet}</span>`
+        : olumculKayip ? `<span style="color:var(--kirmizi)">${k.pratikteHayir}</span>`
+        : `<span style="color:var(--kirmizi)">${k.hayir}</span>`,
       d.alSatMaliyetiPct !== undefined ? k.maliyet(d.alSatMaliyetiPct) : '');
   } else {
     kutu(k.satilir, `<span style="color:var(--gri)">${k.olculemedi}</span>`, k.simYok);
@@ -656,7 +665,12 @@ function cizDenetim(d, den) {
       `<div class="dsatir" style="margin-top:6px">${gosterge(durum)}<span class="dv" style="margin:0;font-size:13px">${metin}</span></div></div>`);
   };
 
-  if (d.satilabilir !== undefined) evetHayir(t().kutu.satilir, d.satilabilir, t().kutu.evet, t().kutu.hayir);
+  // Ust kutuyla ayni mantik: olumcul kayip varsa yesil gosterge verilmez.
+  if (d.satilabilir !== undefined) {
+    const olumcul = d.alSatMaliyetiPct !== undefined && d.alSatMaliyetiPct >= 50;
+    evetHayir(t().kutu.satilir, d.satilabilir && !olumcul, t().kutu.evet,
+      olumcul ? t().kutu.pratikteHayir : t().kutu.hayir);
+  }
   hucre(D.holder, den.holderSayisi !== undefined
     ? `<span class="${den.holderSayisi >= 500 ? 'ok' : den.holderSayisi >= 50 ? '' : 'dikkat'}">${den.holderSayisi.toLocaleString(t().kod)}</span>` : bos,
     den.transferSayisi !== undefined ? `${den.transferSayisi.toLocaleString(t().kod)} ${D.transfer.toLowerCase()}` : '');
