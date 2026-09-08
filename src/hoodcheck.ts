@@ -49,7 +49,7 @@ const ESZAMANLI = 3;              // ayni anda kac tarama (her tarama onlarca RP
 const KUYRUK_SINIRI = 20;
 // Fly.io gibi vekiller istegi ~60 sn'de keser. Kendi zaman asimimiz ONDAN ONCE dolmali ki
 // kullanici bos bir baglanti hatasi degil, anlasilir bir mesaj gorsun.
-const TARAMA_ZAMAN_ASIMI = Number(process.env.HOODCHECK_TIMEOUT_MS || 50_000);
+const TARAMA_ZAMAN_ASIMI = Number(process.env.HOODCHECK_TIMEOUT_MS || 85_000);
 const ONBELLEK_MS = 60_000;
 
 const onbellek = new Map<string, { at: number; rapor: TokenReport }>();

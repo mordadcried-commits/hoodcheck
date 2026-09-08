@@ -284,8 +284,14 @@ export async function tokenReport(chain: Chain, tokenAdres: string, ayniSembolSa
       // grubunu hem blok araligini bolerek tara (CLAN'da tek seferlik sorgu sessizce bosa dusuyordu).
       const kafa = await chain.publicProvider.getBlockNumber();
       const swapAra = async (bitis: number) => swapTara(chain, adaylar, ilkInit, Math.min(bitis, kafa));
-      let swaplar = await swapAra(ilkInit + pencere30dk);
-      if (swaplar && !swaplar.length) swaplar = await swapAra(ilkInit + Math.ceil(6 * 3600 * BLOK_SANIYE));  // 30 dk sessizse 6 saate bak
+
+      // MERDIVEN: bize sadece ILK 60 SANIYEDEKI alicilar lazim. Once dar bir pencereye bak;
+      // canli bir lansmanda ilk islem saniyeler icinde olur ve is orada biter. 30 dakikayla
+      // baslamak CLAN gibi yogun tokenlerde binlerce swap okutuyordu (Render'in 0.1 CPU'sunda
+      // 50 sn zaman asimina takildi). Sadece sessiz tokenlerde pencere genisletilir.
+      let swaplar = await swapAra(ilkInit + Math.ceil(120 * BLOK_SANIYE));          // 2 dakika
+      if (swaplar && !swaplar.length) swaplar = await swapAra(ilkInit + pencere30dk);
+      if (swaplar && !swaplar.length) swaplar = await swapAra(ilkInit + Math.ceil(6 * 3600 * BLOK_SANIYE));
       if (swaplar) {
         if (!swaplar.length) {
           r.lansmanBloku = ilkInit;
