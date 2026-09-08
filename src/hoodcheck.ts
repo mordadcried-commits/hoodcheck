@@ -155,7 +155,16 @@ export async function baslat(): Promise<http.Server> {
           .split('{{ACIKLAMA}}').join(aciklama);
         return gonder(200, html, 'text/html; charset=utf-8');
       }
-      if (url.pathname === '/saglik') return gonder(200, { ok: true, calisan, kuyruk });
+      // Saglik ucu ayarin UYGULANIP UYGULANMADIGINI da bildirir. Sadece var/yok bilgisi;
+      // deger sizdirmaz. Dagitimdan sonra "SITE_URL gecti mi" diye tahmin yurutmemek icin.
+      if (url.pathname === '/saglik') return gonder(200, {
+        ok: true, calisan, kuyruk,
+        ayar: {
+          siteUrl: !!process.env.SITE_URL,
+          vekilGuveni: process.env.TRUST_PROXY === '1',
+          ozelRpc: RPC !== GENEL_RPC,
+        },
+      });
 
       // Maskot sprite'i: 87 MB'lik GLB'den bir kez uretilmis 24 karelik donme seridi.
       if (/^\/(og-(tr|en)|maskot)\.png$/.test(url.pathname)) {
